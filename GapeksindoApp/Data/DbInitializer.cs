@@ -12,8 +12,7 @@ namespace GapeksindoApp.Data
                 try
                 {
                     await roleManager.CreateAsync(new IdentityRole("Admin"));
-                    await roleManager.CreateAsync(new IdentityRole("Petugas"));
-                    await roleManager.CreateAsync(new IdentityRole("Pasien"));
+                    await roleManager.CreateAsync(new IdentityRole("Perusahaan"));
                 }
                 catch (System.Exception ex)
                 {

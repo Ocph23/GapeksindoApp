@@ -18,6 +18,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
+using GapeksindoApp.Data;
+using GapeksindoApp.Models;
 
 namespace GapeksindoApp.Areas.Identity.Pages.Account
 {
@@ -30,12 +32,15 @@ namespace GapeksindoApp.Areas.Identity.Pages.Account
         private readonly ILogger<RegisterModel> _logger;
         private readonly IEmailSender _emailSender;
 
+        private readonly ApplicationDbContext _dbcontext;
+
         public RegisterModel(
             UserManager<IdentityUser> userManager,
             IUserStore<IdentityUser> userStore,
             SignInManager<IdentityUser> signInManager,
             ILogger<RegisterModel> logger,
-            IEmailSender emailSender)
+            IEmailSender emailSender,
+            ApplicationDbContext dbcontext)
         {
             _userManager = userManager;
             _userStore = userStore;
@@ -43,6 +48,7 @@ namespace GapeksindoApp.Areas.Identity.Pages.Account
             _signInManager = signInManager;
             _logger = logger;
             _emailSender = emailSender;
+            _dbcontext = dbcontext;
         }
 
         /// <summary>
@@ -74,6 +80,22 @@ namespace GapeksindoApp.Areas.Identity.Pages.Account
             ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
             ///     directly from your code. This API may change or be removed in future releases.
             /// </summary>
+
+
+            [Required]
+            [Display(Name = "Nama Perusahaan")]
+            public string NamaPerusahaan { get; set; }
+
+            [Required]
+            [Display(Name = "Bentuk Perusahaan")]
+            public string BentukPerusahaan { get; set; }
+
+            [Required]
+            [Display(Name = "Pemilik")]
+            public string Pemilik { get; set; }
+
+
+
             [Required]
             [EmailAddress]
             [Display(Name = "Email")]
@@ -113,16 +135,26 @@ namespace GapeksindoApp.Areas.Identity.Pages.Account
             if (ModelState.IsValid)
             {
                 var user = CreateUser();
-
+                user.EmailConfirmed = true;
                 await _userStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
                 await _emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
                 var result = await _userManager.CreateAsync(user, Input.Password);
-
                 if (result.Succeeded)
                 {
                     _logger.LogInformation("User created a new account with password.");
-
+                   await _userManager.AddToRoleAsync(user,"Perusahaan");
                     var userId = await _userManager.GetUserIdAsync(user);
+
+                    var perusahaan = new Perusahaan()
+                    {
+                        UserId = userId,
+                        NamaPerusahaan = Input.NamaPerusahaan,
+                        Pimpinan = Input.Pemilik,
+                        Bentuk = Input.BentukPerusahaan, Email=Input.Email
+                    };
+
+                    await _dbcontext.Perusahaans.AddAsync(perusahaan);
+                    await _dbcontext.SaveChangesAsync();
                     var code = await _userManager.GenerateEmailConfirmationTokenAsync(user);
                     code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
                     var callbackUrl = Url.Page(

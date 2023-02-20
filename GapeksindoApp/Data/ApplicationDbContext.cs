@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+﻿using GapeksindoApp.Models;
+using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 
 namespace GapeksindoApp.Data
@@ -9,5 +10,9 @@ namespace GapeksindoApp.Data
             : base(options)
         {
         }
+        public DbSet<Persyaratan> Persyaratans { get; set; }
+        public DbSet<Kualifikasi> Kualifikasis{ get; set; }
+        public DbSet<Permohonan> Permohonans { get; set; }
+        public DbSet<Perusahaan> Perusahaans{ get; set; }
     }
 }

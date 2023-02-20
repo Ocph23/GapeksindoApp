@@ -2,37 +2,147 @@
 @page "/admin/persyaratan"
 
 @inject IVersionProvider VersionProvider
-<Heading Size="HeadingSize.Is1" Margin="Margin.Is3.FromBottom">Blazorise</Heading>
+@inject ApplicationDbContext dbcontext
 
-<Paragraph>
-    Blazorise is a component library built on top of Blazor and CSS frameworks like <Anchor To="https://getbootstrap.com/" Target="Target.Blank">Bootstrap</Anchor>, <Anchor To="https://tailwindcss.com/" Target="Target.Blank">Tailwind</Anchor>, <Anchor To="https://bulma.io/" Target="Target.Blank">Bulma</Anchor>, <Anchor To="https://ant.design/" Target="Target.Blank">Ant Design</Anchor>, and <Anchor To="http://daemonite.github.io/material/" Target="Target.Blank">Material</Anchor>. It can be used to build responsive, single-page web applications.
-</Paragraph>
+<Heading Size="HeadingSize.Is1" Margin="Margin.Is3.FromBottom">Data Persyaratan</Heading>
+<Button Color="Color.Primary" Clicked="@NewModal">Tambah</Button>
+<DataGrid TItem="Persyaratan" Data="@Persyaratans" ReadData="@OnReadData" TotalItems="@totalPersyaratans" PageSize="10"
+    ShowPager Responsive>
+    <DataGridColumn Field="@nameof(Persyaratan.Id)" Caption="#" Sortable="false">
+        <DisplayTemplate>
+            @context.Id.ToString("D4")
+        </DisplayTemplate>
+    </DataGridColumn>
+    <DataGridColumn Field="@nameof(Persyaratan.Nama)" Caption="Nama" Editable />
+    <DataGridColumn Field="@nameof(Persyaratan.Keterangan)" Caption="Keterangan" Editable />
+    <DataGridColumn Caption="Upload?" >
+        <DisplayTemplate>
+            <Check Disabled @bind-Checked="@(context.IsUpload)"></Check>
+        </DisplayTemplate>
+    </DataGridColumn>
+    <DataGridColumn Width="150px" Caption="Aksi">
+        <DisplayTemplate >
+            <Icon class="btn btn-outline-warning" Name="IconName.Edit" Clicked="@(()=> EditModal(context))"/>
+            <Icon class="btn btn-outline-danger" Name="IconName.Delete" Clicked="@(()=> Delete(context))"  />
+        </DisplayTemplate>
+    </DataGridColumn>
+</DataGrid>
 
-<Alert Color="Color.Info" Visible>
-    <Paragraph>
-        This is a Blazorise Starting Template allowing you to quickly get started building your project!
-    </Paragraph>
 
-    <Paragraph>
-        The following Blazorise packages have been installed for you:
-    </Paragraph>
+<Modal @ref="modalRef">
+    <ModalContent Centered>
+        <ModalHeader>
+            <ModalTitle>Tambah/Edit Persyaratan</ModalTitle>
+            <CloseButton />
+        </ModalHeader>
+        <ModalBody>
+            <Field>
+                <FieldLabel>Name</FieldLabel>
+                <TextEdit @bind-Text="@model.Nama" Placeholder="Nama Persyaratan" />
+            </Field>
 
-    <UnorderedList>
-        <UnorderedListItem>Blazorise @($"v{VersionProvider.MilestoneVersion}")</UnorderedListItem>
-            <UnorderedListItem>The <Anchor To="https://blazorise.com/docs/usage/bootstrap5">Blazorise Bootstrap5</Anchor> Provider</UnorderedListItem>
-            <UnorderedListItem>The Blazorise FontAwesome Icon Provider</UnorderedListItem>
-            <UnorderedListItem>The <Anchor To="https://blazorise.com/docs/extensions/datagrid/getting-started">Blazorise DataGrid</Anchor> extension</UnorderedListItem>
-        </UnorderedList>
+            <Field>
+                <FieldLabel>Upload Dokumen ?</FieldLabel>
+                <Check @bind-Checked="@model.IsUpload" />
+            </Field>
+            <Field>
+                <FieldLabel>Keterangan</FieldLabel>
+                <MemoEdit @bind-Text="@model.Keterangan" Placeholder="Keterangan" />
+            </Field>
+        </ModalBody>
+        <ModalFooter>
+            <Button Color="Color.Secondary" Clicked="@HideModal">Close</Button>
+            <Button Color="Color.Primary" Clicked="@Save">Save Changes</Button>
+        </ModalFooter>
+    </ModalContent>
+</Modal>
 
-        <Paragraph>
-            However Blazorise has many more extensions at your disposal.
-            You can find them <Anchor To="https://blazorise.com/docs/extensions" Target="Target.Blank">here</Anchor>.
-        </Paragraph>
 
-        <Paragraph>
-            Please visit the official <Anchor To="https://bootstrapdemo.blazorise.com/" Target="Target.Blank">Blazorise Demo</Anchor> for component examples.
-        </Paragraph>
-        <Paragraph>
-            Please visit the official <Anchor To="https://blazorise.com/docs/" Target="Target.Blank">Blazorise Documentation</Anchor> to learn more about the available components.
-        </Paragraph>
-    </Alert>
+@code {
+    [Inject] IMessageService MessageService { get; set; }
+    private Modal modalRef;
+
+    Persyaratan model = new Persyaratan();
+    private List<Persyaratan> Persyaratans;
+    protected override async Task OnInitializedAsync()
+    {
+        Persyaratans = await dbcontext.Persyaratans.ToListAsync();
+        await base.OnInitializedAsync();
+    }
+
+    private int totalPersyaratans;
+
+    private async Task OnReadData(DataGridReadDataEventArgs<Persyaratan> e)
+    {
+        if (!e.CancellationToken.IsCancellationRequested)
+        {
+            List<Persyaratan> response = null;
+
+            // this can be call to anything, in this case we're calling a fictional api
+            //var response = await Http.GetJsonAsync<Persyaratan[]>( $"some-api/Persyaratans?page={e.Page}&pageSize={e.PageSize}" );
+            if (e.ReadDataMode is DataGridReadDataMode.Virtualize)
+                response = await dbcontext.Persyaratans.Skip(e.VirtualizeOffset).Take(e.VirtualizeCount).ToListAsync();
+            else if (e.ReadDataMode is DataGridReadDataMode.Paging)
+                response = await dbcontext.Persyaratans.Skip((e.Page - 1) * e.PageSize).Take(e.PageSize).ToListAsync();
+            else
+                throw new Exception("Unhandled ReadDataMode");
+
+            if (!e.CancellationToken.IsCancellationRequested)
+            {
+                totalPersyaratans = await dbcontext.Persyaratans.CountAsync();
+                Persyaratans = new List<Persyaratan>(response); // an actual data for the current page
+            }
+        }
+    }
+
+
+
+    private Task NewModal()
+    {
+        model = new Persyaratan();
+        return modalRef.Show();
+    }
+
+    private Task HideModal()
+    {
+        return modalRef.Hide();
+    }
+    private Task EditModal(Persyaratan data)
+    {
+        model = data;
+        return modalRef.Show();
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            if (model.Id <= 0)
+            {
+                await dbcontext.Persyaratans.AddAsync(model);
+                await dbcontext.SaveChangesAsync();
+                Persyaratans.Add(model);
+                await modalRef.Hide();
+            }
+            else
+            {
+                await dbcontext.SaveChangesAsync();
+            }
+        }
+        catch (System.Exception ex)
+        {
+            await MessageService.Error(ex.Message);
+        }
+    }
+
+
+    private async Task Delete(Persyaratan model)
+    {
+        if (await MessageService.Confirm("Yakin Hapus Data ?", "Delete"))
+        {
+            dbcontext.Persyaratans.Remove(model);
+            await dbcontext.SaveChangesAsync();
+            Persyaratans.Remove(model);
+        }
+    }
+}

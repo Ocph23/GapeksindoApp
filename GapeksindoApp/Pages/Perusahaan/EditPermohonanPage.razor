@@ -1,0 +1,157 @@
+﻿@layout Layouts.PerusahaanLayout
+@page "/perusahaan/permohonan/{id:int}"
+@using Microsoft.AspNetCore.Identity
+@inject IVersionProvider VersionProvider
+@inject UserManager<IdentityUser> _userManager;
+@inject ApplicationDbContext dbcontext
+@inject IMessageService MessageService
+
+<Heading Size="HeadingSize.Is1" Margin="Margin.Is3.FromBottom">@title</Heading>
+
+<Card>
+    <CardBody>
+        <div class="row mb-2">
+            <div class="col">
+            </div>
+            <div class="col" style="display: flex; justify-content:end">
+                <Button Clicked="@UpdateProfile" class="btn btn-secondary">Update Permohonan</Button>
+            </div>
+        </div>
+
+        <div class="row">
+            <div class="col-6">
+                <div class="form-floating mb-2">
+                    <DatePicker DisplayFormat="dd/MM/yyyy" @bind-Date="@model.Tanggal"></DatePicker>
+                    <label>Tanggal Pengajuan</label>
+                </div>
+                <div class="form-floating mb-2">
+                    <TextEdit @bind-Text="@model.Nomor"></TextEdit>
+                    <label>Nomor</label>
+                </div>
+                <div class="form-floating mb-2">
+                    <Select TValue="StatusPermohonan" @bind-SelectedValue="@model.Status">
+                        @foreach (var item in GetStatusPermohonans(model))
+                        {
+                            <SelectItem Value="@item">@item</SelectItem>
+                        }
+                    </Select>
+                    <label>Status</label>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-4">
+            <div style="display:flex; justify-content: space-between;">
+                <Heading Size="HeadingSize.Is5" Margin="Margin.Is3.FromBottom">Data Kualifikasi</Heading>
+                <Icon class="btn btn-warning" Name="IconName.Add" Clicked="@(()=>AddKualifikasi())" />
+            </div>
+            <DataGrid TItem="Kualifikasi" Data="@dataKualifikasi">
+                <DataGridColumn Field="@nameof(Persyaratan.Id)" Caption="#" Sortable="false">
+                    <DisplayTemplate>
+                        @context.Id.ToString("D4")
+                    </DisplayTemplate>
+                </DataGridColumn>
+                <DataGridColumn Field="@nameof(Persyaratan.Nama)" Caption="Nama" Editable />
+                <DataGridColumn Field="@nameof(Persyaratan.Keterangan)" Caption="Keterangan" Editable />
+                <DataGridColumn Width="150px" Caption="Aksi">
+                    <DisplayTemplate>
+                        <Icon class="btn btn-outline-warning" Name="IconName.Edit" />
+                    </DisplayTemplate>
+                </DataGridColumn>
+            </DataGrid>
+        </div>
+        <div class="row" style="margin-top: 50px;">
+            <div style="display:flex; justify-content: space-between;">
+                <Heading Size="HeadingSize.Is5" Margin="Margin.Is3.FromBottom">Data Persyaratan</Heading>
+            </div>
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th scope="col">#</th>
+                        <th scope="col">Nama Persyaratan</th>
+                        <th scope="col">Aksi</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in model.DataPersyaratan)
+                    {
+                        <tr>
+                            <th scope="row">1</th>
+                            <td>@item.Persyaratan.Nama</td>
+                            <td>Otto</td>
+                            <td></td>
+                        </tr>
+                    }
+
+                </tbody>
+            </table>
+
+        </div>
+    </CardBody>
+</Card>
+
+
+
+@code {
+
+    string title = "Tambah";
+    [Parameter] public int Id { get; set; }
+
+    [Inject] AuthenticationStateProvider AuthenticationStateProvider { get; set; }
+    [Inject] NavigationManager navManager { get; set; }
+    Permohonan model = new Permohonan() { Status = StatusPermohonan.Baru };
+    ICollection<Kualifikasi> dataKualifikasi;
+    protected override async Task OnInitializedAsync()
+    {
+
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity.IsAuthenticated)
+        {
+            var userData = await _userManager.FindByNameAsync(user.Identity.Name);
+        }
+
+        if (Id > 0)
+        {
+            title = "Edit";
+            var tempModel = await dbcontext.Permohonans.SingleOrDefaultAsync(x => x.Id == Id);
+            if (tempModel != null)
+                model = tempModel;
+        }
+        else
+        {
+            foreach (var item in dbcontext.Persyaratans.ToList())
+            {
+                model.DataPersyaratan.Add(new DataPersyaratan() { Persyaratan = item });
+            }
+
+        }
+
+    }
+
+    async Task AddKualifikasi()
+    {
+
+    }
+
+    async Task UpdateProfile()
+    {
+
+        if (await MessageService.Confirm("Yakin Update Data ?", "Update"))
+        {
+            await dbcontext.SaveChangesAsync();
+        }
+    }
+
+    ICollection<StatusPermohonan> GetStatusPermohonans(Permohonan model)
+    {
+        var datas = Enum.GetValues(typeof(StatusPermohonan)).Cast<StatusPermohonan>();
+        if (model.Status == StatusPermohonan.Verifikasi)
+        {
+            return datas.Where(x => x == StatusPermohonan.Verifikasi).ToList();
+        }
+
+        return datas.Where(x => x == model.Status || x == StatusPermohonan.Baru).ToList();
+    }
+
+}
