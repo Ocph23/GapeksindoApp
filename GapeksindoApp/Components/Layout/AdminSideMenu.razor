@@ -1,0 +1,61 @@
+﻿<Bar Breakpoint="Breakpoint.Desktop" NavigationBreakpoint="Breakpoint.Tablet" ThemeContrast="ThemeContrast.Dark"
+     Mode="BarMode.VerticalInline" CollapseMode="BarCollapseMode.Small">
+    <BarToggler />
+    <BarBrand>
+        <BarItem>
+            <BarLink To="">
+                <BarIcon IconName="customIcon" />
+                Gapeksindo
+            </BarLink>
+        </BarItem>
+    </BarBrand>
+    <BarMenu>
+        <BarStart>
+            <BarItem>
+                <BarLink To="/admin">
+                    <BarIcon IconName="IconName.Home" />
+                    Home
+                </BarLink>
+            </BarItem>
+            <BarItem>
+                <BarLink To="/admin/persyaratan">
+                    <BarIcon IconName="IconName.DotCircle" />
+                    Persyaratan
+                </BarLink>
+            </BarItem>
+            <BarItem>
+                <BarLink To="/admin/kualifikasi">
+                    <BarIcon IconName="IconName.DotCircle" />
+                    Kualifikasi
+                </BarLink>
+            </BarItem>
+              <BarItem>
+                <BarLink To="/admin/permohonan">
+                    <BarIcon IconName="IconName.DotCircle" />
+                    Permohonan
+                </BarLink>
+            </BarItem>
+
+            <BarItem>
+                <BarLink To="/">
+                    <BarIcon IconName="IconName.Users" />
+                    Users
+                </BarLink>
+            </BarItem>
+
+        </BarStart>
+        <BarEnd>
+            <BarItem>
+                <BarLink To="/">
+                    <BarIcon IconName="IconName.Clock" />
+                    Logout
+                </BarLink>
+            </BarItem>
+        </BarEnd>
+    </BarMenu>
+</Bar>
+@code {
+    private bool pagesBarVisible = true;
+
+    RenderFragment customIcon =@<img src="/brand-logo.png" style="width:32px; height: 32px" />;
+}
