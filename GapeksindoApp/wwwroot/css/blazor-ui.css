@@ -23,6 +23,40 @@
     color: white;
 }
 
+
 .blazor-error-boundary::after {
     content: "An error has occurred."
 }
+
+.logoName{
+    font-size: 8px;
+    color: rgb(42, 42, 99);
+}
+
+
+.dewan{
+    line-height: 0%;
+    color: rgb(42, 42, 99);
+}
+
+.justprint{
+    display: none;
+}
+
+@media print{
+
+    aside, header{
+        display: none !important;
+    }
+
+    .noprint{
+        display: none;
+    }
+
+    .justprint{
+        display:block !important;
+    }
+
+}
+
+

@@ -6,4 +6,5 @@ public class  DataPersyaratan{
     public Persyaratan Persyaratan {get;set;}
     public string? FileNama { get; set; }   
     public bool Status { get; set; }
+    public bool Validate { get; set; }
 }

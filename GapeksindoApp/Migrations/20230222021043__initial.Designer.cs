@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GapeksindoApp.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20230220044146_models")]
-    partial class models
+    [Migration("20230222021043__initial")]
+    partial class _initial
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -21,6 +21,33 @@ namespace GapeksindoApp.Migrations
             modelBuilder
                 .HasAnnotation("ProductVersion", "7.0.3")
                 .HasAnnotation("Relational:MaxIdentifierLength", 64);
+
+            modelBuilder.Entity("GapeksindoApp.Models.DataPersyaratan", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("FileNama")
+                        .HasColumnType("longtext");
+
+                    b.Property<int?>("PermohonanId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PersyaratanId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("Status")
+                        .HasColumnType("tinyint(1)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("PermohonanId");
+
+                    b.HasIndex("PersyaratanId");
+
+                    b.ToTable("DataPersyaratan");
+                });
 
             modelBuilder.Entity("GapeksindoApp.Models.Kualifikasi", b =>
                 {
@@ -40,7 +67,12 @@ namespace GapeksindoApp.Migrations
                         .IsRequired()
                         .HasColumnType("longtext");
 
+                    b.Property<int?>("PermohonanId")
+                        .HasColumnType("int");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("PermohonanId");
 
                     b.ToTable("Kualifikasis");
                 });
@@ -51,10 +83,24 @@ namespace GapeksindoApp.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
+                    b.Property<string>("Keterangan")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Nomor")
+                        .HasColumnType("longtext");
+
+                    b.Property<int>("PerusahaanId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("Tanggal")
                         .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PerusahaanId");
 
                     b.ToTable("Permohonans");
                 });
@@ -79,6 +125,47 @@ namespace GapeksindoApp.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Persyaratans");
+                });
+
+            modelBuilder.Entity("GapeksindoApp.Models.Perusahaan", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    b.Property<string>("Alamat")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Bentuk")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("NPWP")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("NamaPerusahaan")
+                        .IsRequired()
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("Pimpinan")
+                        .HasColumnType("longtext");
+
+                    b.Property<bool>("Status")
+                        .HasColumnType("tinyint(1)");
+
+                    b.Property<string>("Telepon")
+                        .HasColumnType("longtext");
+
+                    b.Property<string>("UserId")
+                        .HasColumnType("longtext");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Perusahaans");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -273,6 +360,39 @@ namespace GapeksindoApp.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("GapeksindoApp.Models.DataPersyaratan", b =>
+                {
+                    b.HasOne("GapeksindoApp.Models.Permohonan", null)
+                        .WithMany("DataPersyaratan")
+                        .HasForeignKey("PermohonanId");
+
+                    b.HasOne("GapeksindoApp.Models.Persyaratan", "Persyaratan")
+                        .WithMany()
+                        .HasForeignKey("PersyaratanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Persyaratan");
+                });
+
+            modelBuilder.Entity("GapeksindoApp.Models.Kualifikasi", b =>
+                {
+                    b.HasOne("GapeksindoApp.Models.Permohonan", null)
+                        .WithMany("DataKualifikasi")
+                        .HasForeignKey("PermohonanId");
+                });
+
+            modelBuilder.Entity("GapeksindoApp.Models.Permohonan", b =>
+                {
+                    b.HasOne("GapeksindoApp.Models.Perusahaan", "Perusahaan")
+                        .WithMany()
+                        .HasForeignKey("PerusahaanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Perusahaan");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -322,6 +442,13 @@ namespace GapeksindoApp.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("GapeksindoApp.Models.Permohonan", b =>
+                {
+                    b.Navigation("DataKualifikasi");
+
+                    b.Navigation("DataPersyaratan");
                 });
 #pragma warning restore 612, 618
         }

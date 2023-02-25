@@ -1,0 +1,154 @@
+﻿@layout Layouts.AdminLayout
+@page "/admin/perusahaan"
+
+@inject IVersionProvider VersionProvider
+@inject ApplicationDbContext dbcontext
+
+<Heading Size="HeadingSize.Is1" Margin="Margin.Is3.FromBottom">Data Perusahaan</Heading>
+<DataGrid TItem="Perusahaan" Data="@Perusahaans" ReadData="@OnReadData" TotalItems="@totalPerusahaans" PageSize="10"
+    ShowPager Responsive>
+    <DataGridColumn Field="@nameof(Perusahaan.Id)" Caption="#" Sortable="false">
+        <DisplayTemplate>
+            @context.Id.ToString("D4")
+        </DisplayTemplate>
+    </DataGridColumn>
+    <DataGridColumn Caption="Perusahaan">
+        <DisplayTemplate>
+            @context.FullName
+        </DisplayTemplate>
+    </DataGridColumn>
+    <DataGridColumn Field="@nameof(Perusahaan.NamaPerusahaan)" Caption="Nama" Editable />
+    <DataGridColumn Field="@nameof(Perusahaan.Pimpinan)" Caption="Pimpinan" Editable />
+    <DataGridColumn Caption="Aktif ?">
+        <DisplayTemplate>
+            <Check Disabled @bind-Checked="@(context.Status)"></Check>
+        </DisplayTemplate>
+    </DataGridColumn>
+    <DataGridColumn Width="150px" Caption="Aksi">
+        <DisplayTemplate>
+            <Icon class="btn btn-outline-warning" Name="IconName.Edit" Clicked="@(()=> EditModal(context))" />
+        </DisplayTemplate>
+    </DataGridColumn>
+</DataGrid>
+
+
+<Modal @ref="modalRef">
+    <ModalContent Centered>
+        <ModalHeader>
+            <ModalTitle>Detail Perusahaan</ModalTitle>
+            <CloseButton />
+        </ModalHeader>
+        <ModalBody>
+            <Field>
+                <FieldLabel>Nama Perusahaan</FieldLabel>
+                <TextEdit Text="@model.FullName" Placeholder="Nama Perusahaan" />
+            </Field>
+
+            <Field>
+                <FieldLabel>Pimpinan</FieldLabel>
+                <TextEdit Text="@model.Pimpinan" Placeholder="Pimpinan/Pemilik" />
+            </Field>
+            <Field>
+                <FieldLabel>NPWP</FieldLabel>
+                <TextEdit Text="@model.NPWP" Placeholder="Nama Perusahaan" />
+            </Field>
+            <Field>
+                <FieldLabel>Telepon</FieldLabel>
+                <TextEdit Text="@model.Telepon" Placeholder="Nama Perusahaan" />
+            </Field>
+            <Field>
+                <FieldLabel>Keterangan</FieldLabel>
+                <MemoEdit @bind-Text="@model.Alamat" Placeholder="Alamat" />
+            </Field>
+              <Field>
+                <FieldLabel>Aktif ?</FieldLabel>
+                <Check @bind-Checked="@model.Status" />
+            </Field>
+        </ModalBody>
+        <ModalFooter>
+            <Button Color="Color.Secondary" Clicked="@HideModal">Batal</Button>
+            <Button Color="Color.Primary" Clicked="@Save">Simpan</Button>
+        </ModalFooter>
+    </ModalContent>
+</Modal>
+
+
+@code {
+    [Inject] IMessageService MessageService { get; set; }
+    private Modal modalRef;
+
+    Perusahaan model = new Perusahaan();
+    private List<Perusahaan> Perusahaans;
+    protected override async Task OnInitializedAsync()
+    {
+        Perusahaans = await dbcontext.Perusahaans.ToListAsync();
+        await base.OnInitializedAsync();
+    }
+
+    private int totalPerusahaans;
+
+    private async Task OnReadData(DataGridReadDataEventArgs<Perusahaan> e)
+    {
+        if (!e.CancellationToken.IsCancellationRequested)
+        {
+            List<Perusahaan> response = null;
+
+            // this can be call to anything, in this case we're calling a fictional api
+            //var response = await Http.GetJsonAsync<Perusahaan[]>( $"some-api/Perusahaans?page={e.Page}&pageSize={e.PageSize}" );
+            if (e.ReadDataMode is DataGridReadDataMode.Virtualize)
+                response = await dbcontext.Perusahaans.Skip(e.VirtualizeOffset).Take(e.VirtualizeCount).ToListAsync();
+            else if (e.ReadDataMode is DataGridReadDataMode.Paging)
+                response = await dbcontext.Perusahaans.Skip((e.Page - 1) * e.PageSize).Take(e.PageSize).ToListAsync();
+            else
+                throw new Exception("Unhandled ReadDataMode");
+
+            if (!e.CancellationToken.IsCancellationRequested)
+            {
+                totalPerusahaans = await dbcontext.Perusahaans.CountAsync();
+                Perusahaans = new List<Perusahaan>(response); // an actual data for the current page
+            }
+        }
+    }
+
+
+
+    private Task NewModal()
+    {
+        model = new Perusahaan();
+        return modalRef.Show();
+    }
+
+    private Task HideModal()
+    {
+        return modalRef.Hide();
+    }
+    private Task EditModal(Perusahaan data)
+    {
+        model = data;
+        return modalRef.Show();
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+             await dbcontext.SaveChangesAsync();
+             modalRef.Hide();
+        }
+        catch (System.Exception ex)
+        {
+            await MessageService.Error(ex.Message);
+        }
+    }
+
+
+    private async Task Delete(Perusahaan model)
+    {
+        if (await MessageService.Confirm("Yakin Hapus Data ?", "Delete"))
+        {
+            dbcontext.Perusahaans.Remove(model);
+            await dbcontext.SaveChangesAsync();
+            Perusahaans.Remove(model);
+        }
+    }
+}

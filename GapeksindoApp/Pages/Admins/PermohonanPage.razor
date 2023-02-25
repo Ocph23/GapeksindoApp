@@ -2,37 +2,121 @@
 @page "/admin/permohonan"
 
 @inject IVersionProvider VersionProvider
-<Heading Size="HeadingSize.Is1" Margin="Margin.Is3.FromBottom">Blazorise</Heading>
+@inject ApplicationDbContext dbcontext
+@inject NavigationManager nav
 
-<Paragraph>
-    Blazorise is a component library built on top of Blazor and CSS frameworks like <Anchor To="https://getbootstrap.com/" Target="Target.Blank">Bootstrap</Anchor>, <Anchor To="https://tailwindcss.com/" Target="Target.Blank">Tailwind</Anchor>, <Anchor To="https://bulma.io/" Target="Target.Blank">Bulma</Anchor>, <Anchor To="https://ant.design/" Target="Target.Blank">Ant Design</Anchor>, and <Anchor To="http://daemonite.github.io/material/" Target="Target.Blank">Material</Anchor>. It can be used to build responsive, single-page web applications.
-</Paragraph>
+<Heading Size="HeadingSize.Is1" Margin="Margin.Is3.FromBottom">Data Permohonan</Heading>
+<DataGrid TItem="Permohonan" Data="@Permohonans" ReadData="@OnReadData" 
+TotalItems="@totalPermohonans" PageSize="10"
+    ShowPager Responsive>
+    <DataGridColumn Field="@nameof(Permohonan.Id)" Caption="#" Sortable="false">
+        <DisplayTemplate>
+            @context.Id.ToString("D4")
+        </DisplayTemplate>
+    </DataGridColumn>
+    <DataGridColumn Field="@nameof(Permohonan.Tanggal)" Caption="Tanggal" Editable />
+    <DataGridColumn Field="@nameof(Permohonan.Nomor)" Caption="Nomor" Editable />
+    <DataGridColumn Caption="Perusahaan" >
+        <DisplayTemplate>
+            @context.Perusahaan.NamaPerusahaan
+        </DisplayTemplate>
+    </DataGridColumn>
+    <DataGridColumn Field="@nameof(Permohonan.Keterangan)" Caption="Keterangan" Editable />
+    <DataGridColumn Field="@nameof(Permohonan.Status)" Caption="Status" Editable />
+    <DataGridColumn Width="150px" Caption="Aksi">
+        <DisplayTemplate >
+            <Icon class="btn btn-outline-warning" Name="IconName.Edit" 
+            Clicked="@(()=> nav.NavigateTo($"/admin/permohonan/{context.Id}"))"/>
+        </DisplayTemplate>
+    </DataGridColumn>
+</DataGrid>
 
-<Alert Color="Color.Info" Visible>
-    <Paragraph>
-        This is a Blazorise Starting Template allowing you to quickly get started building your project!
-    </Paragraph>
 
-    <Paragraph>
-        The following Blazorise packages have been installed for you:
-    </Paragraph>
+@code {
+    [Inject] IMessageService MessageService { get; set; }
+    private Modal modalRef;
 
-    <UnorderedList>
-        <UnorderedListItem>Blazorise @($"v{VersionProvider.MilestoneVersion}")</UnorderedListItem>
-            <UnorderedListItem>The <Anchor To="https://blazorise.com/docs/usage/bootstrap5">Blazorise Bootstrap5</Anchor> Provider</UnorderedListItem>
-            <UnorderedListItem>The Blazorise FontAwesome Icon Provider</UnorderedListItem>
-            <UnorderedListItem>The <Anchor To="https://blazorise.com/docs/extensions/datagrid/getting-started">Blazorise DataGrid</Anchor> extension</UnorderedListItem>
-        </UnorderedList>
+    Permohonan model = new Permohonan();
+    private List<Permohonan> Permohonans;
+    protected override async Task OnInitializedAsync()
+    {
+        Permohonans = await dbcontext.Permohonans.Include(x=>x.Perusahaan).ToListAsync();
+        await base.OnInitializedAsync();
+    }
 
-        <Paragraph>
-            However Blazorise has many more extensions at your disposal.
-            You can find them <Anchor To="https://blazorise.com/docs/extensions" Target="Target.Blank">here</Anchor>.
-        </Paragraph>
+    private int totalPermohonans;
 
-        <Paragraph>
-            Please visit the official <Anchor To="https://bootstrapdemo.blazorise.com/" Target="Target.Blank">Blazorise Demo</Anchor> for component examples.
-        </Paragraph>
-        <Paragraph>
-            Please visit the official <Anchor To="https://blazorise.com/docs/" Target="Target.Blank">Blazorise Documentation</Anchor> to learn more about the available components.
-        </Paragraph>
-    </Alert>
+    private async Task OnReadData(DataGridReadDataEventArgs<Permohonan> e)
+    {
+        if (!e.CancellationToken.IsCancellationRequested)
+        {
+            List<Permohonan> response = null;
+
+            // this can be call to anything, in this case we're calling a fictional api
+            //var response = await Http.GetJsonAsync<Permohonan[]>( $"some-api/Permohonans?page={e.Page}&pageSize={e.PageSize}" );
+            if (e.ReadDataMode is DataGridReadDataMode.Virtualize)
+                response = await dbcontext.Permohonans.Include(x=>x.Perusahaan).Skip(e.VirtualizeOffset).Take(e.VirtualizeCount).ToListAsync();
+            else if (e.ReadDataMode is DataGridReadDataMode.Paging)
+                response = await dbcontext.Permohonans.Skip((e.Page - 1) * e.PageSize).Take(e.PageSize).ToListAsync();
+            else
+                throw new Exception("Unhandled ReadDataMode");
+
+            if (!e.CancellationToken.IsCancellationRequested)
+            {
+                totalPermohonans = await dbcontext.Permohonans.Include(x=>x.Perusahaan).CountAsync();
+                Permohonans = new List<Permohonan>(response); // an actual data for the current page
+            }
+        }
+    }
+
+
+
+    private Task NewModal()
+    {
+        model = new Permohonan();
+        return modalRef.Show();
+    }
+
+    private Task HideModal()
+    {
+        return modalRef.Hide();
+    }
+    private Task EditModal(Permohonan data)
+    {
+        model = data;
+        return modalRef.Show();
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            if (model.Id <= 0)
+            {
+                await dbcontext.Permohonans.AddAsync(model);
+                await dbcontext.SaveChangesAsync();
+                Permohonans.Add(model);
+                await modalRef.Hide();
+            }
+            else
+            {
+                await dbcontext.SaveChangesAsync();
+            }
+        }
+        catch (System.Exception ex)
+        {
+            await MessageService.Error(ex.Message);
+        }
+    }
+
+
+    private async Task Delete(Permohonan model)
+    {
+        if (await MessageService.Confirm("Yakin Hapus Data ?", "Delete"))
+        {
+            dbcontext.Permohonans.Remove(model);
+            await dbcontext.SaveChangesAsync();
+            Permohonans.Remove(model);
+        }
+    }
+}

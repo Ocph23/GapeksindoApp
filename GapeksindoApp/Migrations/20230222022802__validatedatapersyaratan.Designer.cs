@@ -11,8 +11,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace GapeksindoApp.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20230220102902_permohonan")]
-    partial class permohonan
+    [Migration("20230222022802__validatedatapersyaratan")]
+    partial class _validatedatapersyaratan
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -40,6 +40,9 @@ namespace GapeksindoApp.Migrations
                     b.Property<bool>("Status")
                         .HasColumnType("tinyint(1)");
 
+                    b.Property<bool>("Validate")
+                        .HasColumnType("tinyint(1)");
+
                     b.HasKey("Id");
 
                     b.HasIndex("PermohonanId");
@@ -56,7 +59,6 @@ namespace GapeksindoApp.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Keterangan")
-                        .IsRequired()
                         .HasColumnType("longtext");
 
                     b.Property<string>("Kode")
@@ -89,6 +91,9 @@ namespace GapeksindoApp.Migrations
                     b.Property<string>("Nomor")
                         .HasColumnType("longtext");
 
+                    b.Property<int>("PerusahaanId")
+                        .HasColumnType("int");
+
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
@@ -96,6 +101,8 @@ namespace GapeksindoApp.Migrations
                         .HasColumnType("datetime(6)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("PerusahaanId");
 
                     b.ToTable("Permohonans");
                 });
@@ -110,7 +117,6 @@ namespace GapeksindoApp.Migrations
                         .HasColumnType("tinyint(1)");
 
                     b.Property<string>("Keterangan")
-                        .IsRequired()
                         .HasColumnType("longtext");
 
                     b.Property<string>("Nama")
@@ -375,6 +381,17 @@ namespace GapeksindoApp.Migrations
                     b.HasOne("GapeksindoApp.Models.Permohonan", null)
                         .WithMany("DataKualifikasi")
                         .HasForeignKey("PermohonanId");
+                });
+
+            modelBuilder.Entity("GapeksindoApp.Models.Permohonan", b =>
+                {
+                    b.HasOne("GapeksindoApp.Models.Perusahaan", "Perusahaan")
+                        .WithMany()
+                        .HasForeignKey("PerusahaanId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("Perusahaan");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>

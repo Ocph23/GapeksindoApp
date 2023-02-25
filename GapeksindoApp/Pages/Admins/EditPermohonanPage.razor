@@ -1,5 +1,5 @@
-﻿@layout Layouts.PerusahaanLayout
-@page "/perusahaan/permohonan/{id:int}"
+﻿@layout Layouts.AdminLayout
+@page "/admin/permohonan/{id:int}"
 
 @using Microsoft.AspNetCore.Identity
 @inject IVersionProvider VersionProvider
@@ -17,20 +17,20 @@
             <div class="col">
             </div>
             <div class="col" style="display: flex; justify-content:end">
-                <Button Clicked="@UpdateProfile" class="btn btn-secondary">Update Permohonan</Button>
+                <Button Clicked="@UpdateProfile" class="btn btn-secondary"
+                    Disabled="@(model.DataKualifikasi.Count<=0)">Update Permohonan</Button>
             </div>
         </div>
         <div class="row">
             <div class="col-6">
-                  <div class="form-floating mb-2">
-                    <TextEdit @bind-Text="@model.Nomor" Disabled></TextEdit>
-                    <label>Nomor</label>
-                </div>
                 <div class="form-floating mb-2">
                     <DatePicker DisplayFormat="dd/MM/yyyy" @bind-Date="@model.Tanggal"></DatePicker>
                     <label>Tanggal Pengajuan</label>
                 </div>
-              
+                <div class="form-floating mb-2">
+                    <TextEdit @bind-Text="@model.Nomor"></TextEdit>
+                    <label>Nomor</label>
+                </div>
                 <div class="form-floating mb-2">
                     <Select TValue="StatusPermohonan" @bind-SelectedValue="@model.Status">
                         @foreach (var item in GetStatusPermohonans(model))
@@ -44,12 +44,17 @@
                     <MemoEdit @bind-Text="@model.Keterangan"></MemoEdit>
                     <label>Catatan</label>
                 </div>
+                @if(model.Status==StatusPermohonan.Verifikasi){
+                    <div class="form-floating mb-2">
+                    <DatePicker DisplayFormat="dd/MM/yyyy" @bind-Date="@model.TanggalDitetapkan"></DatePicker>
+                    <label>Tanggal Ditetapkan</label>
+                </div>
+                }
             </div>
         </div>
         <div class="row mt-4">
             <div style="display:flex; justify-content: space-between;">
                 <Heading Size="HeadingSize.Is5" Margin="Margin.Is3.FromBottom">Data Kualifikasi</Heading>
-                <Icon class="btn btn-outline-warning" Name="IconName.Add" Clicked="@(()=>AddKualifikasi())" />
             </div>
             <DataGrid TItem="Kualifikasi" Data="@model.DataKualifikasi">
                 <DataGridColumn Field="@nameof(Persyaratan.Id)" Caption="#" Sortable="false">
@@ -59,12 +64,6 @@
                 </DataGridColumn>
                 <DataGridColumn Field="@nameof(Persyaratan.Nama)" Caption="Nama" Editable />
                 <DataGridColumn Field="@nameof(Persyaratan.Keterangan)" Caption="Keterangan" Editable />
-                <DataGridColumn Width="150px" Caption="Aksi">
-                    <DisplayTemplate>
-                        <Icon class="btn btn-outline-danger" Name="IconName.Delete"
-                            Clicked="@(()=> DeleteKualifikasi(context))" />
-                    </DisplayTemplate>
-                </DataGridColumn>
             </DataGrid>
         </div>
 
@@ -91,10 +90,6 @@
                                 <td>
                                     @if (item.Persyaratan.IsUpload)
                                     {
-                                        <InputFile OnChange="@OnFileChange" hidden id="@($"file{@item.Id}")" />
-                                        <Icon TextColor="TextColor.Warning" style="margin: 1px; "
-                                Clicked="@(()=>UploadFile(item,  $"file{@item.Id}"))" IconSize="IconSize.Large"
-                                Name="IconName.FileUpload" />
                                         @if (!string.IsNullOrEmpty(item.FileNama))
                                         {
                                             <Icon style="margin: 1px;" TextColor="TextColor.Danger" Clicked="@(()=>Preview(item))"
@@ -103,8 +98,12 @@
                                     }
                                     else
                                     {
-                                        <Check TValue="bool" Checked="@item.Status" CheckedChanged="@((x)=> UpdateCheckPersyaratan(x,item))"></Check>
+                                        <Check TValue="bool" Checked="@item.Status" Disabled></Check>
                                     }
+                                </td>
+                                <td>
+                                    <Check TValue="bool" Checked="@item.Validate"
+                                CheckedChanged="@((x)=> UpdateCheckPersyaratan(x,item))"></Check>
                                 </td>
                             </tr>
                         }
@@ -114,32 +113,6 @@
         }
     </CardBody>
 </Card>
-
-
-<Modal @ref="modalRef">
-    <ModalContent Centered>
-        <ModalHeader>
-            <ModalTitle>Tambah Kualifikasi</ModalTitle>
-            <CloseButton />
-        </ModalHeader>
-        <ModalBody>
-            <div class="form-floating mb-2">
-                <Select TValue="int" @bind-SelectedValue="selectKualifikasi">
-                    <SelectItem>@("None")</SelectItem>
-                        @foreach (var item in dataKualifikasi)
-                    {
-                        <SelectItem Value="item.Id">@($"{item.Kode} - {item.Nama}")</SelectItem>
-                    }
-                </Select>
-                <label>Status</label>
-            </div>
-        </ModalBody>
-        <ModalFooter>
-            <Button Color="Color.Secondary" Clicked="@closeKualifikasiModal">Keluar</Button>
-            <Button Color="Color.Primary" Clicked="@selectKualifikasiData">Pilih</Button>
-        </ModalFooter>
-    </ModalContent>
-</Modal>
 
 
 
@@ -175,23 +148,21 @@
     DataPersyaratan selectedPersyaratan;
     private int selectKualifikasi;
     private string selectedFile;
-    Perusahaan perusahaan;
 
     protected override async Task OnInitializedAsync()
     {
+
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         if (user.Identity.IsAuthenticated)
         {
             var userData = await _userManager.FindByNameAsync(user.Identity.Name);
-            perusahaan = await dbcontext.Perusahaans.SingleOrDefaultAsync(x => x.UserId == userData.Id);
         }
 
         if (Id > 0)
         {
             title = "Edit";
             var tempModel = await dbcontext.Permohonans
-            .Include(x => x.Perusahaan)
             .Include(x => x.DataPersyaratan).ThenInclude(x => x.Persyaratan)
             .Include(x => x.DataKualifikasi)
             .SingleOrDefaultAsync(x => x.Id == Id);
@@ -200,19 +171,11 @@
         }
         else
         {
-            model.Perusahaan = perusahaan;
             foreach (var item in dbcontext.Persyaratans.ToList())
             {
                 model.DataPersyaratan.Add(new DataPersyaratan() { Persyaratan = item });
             }
         }
-    }
-
-    async Task UpdateCheckPersyaratan(bool x,DataPersyaratan data)
-    {
-        data.Status=x;
-        dbcontext.Update(data);
-        await dbcontext.SaveChangesAsync();
     }
 
     Task Preview(DataPersyaratan data)
@@ -221,66 +184,14 @@
         modalPreview.Show();
         return Task.CompletedTask;
     }
-
-    private async Task OnFileChange(InputFileChangeEventArgs e)
+    async Task UpdateCheckPersyaratan(bool x, DataPersyaratan data)
     {
-        var file = e.GetMultipleFiles(1).FirstOrDefault();
-        try
-        {
-            var trustedFileNameForFileStorage = Path.GetRandomFileName();
-            var path = Path.Combine(Environment.ContentRootPath, "wwwroot", "files");
-            if (!Directory.Exists(path))
-                Directory.CreateDirectory(path);
-
-            var fileName = $"{trustedFileNameForFileStorage}.{file.Name.Split(".")[1]}";
-            var fileNameWithPath = path + $"\\{fileName}";
-            await using FileStream fs = new(fileNameWithPath, FileMode.Create);
-            await file.OpenReadStream(1024 * 1024).CopyToAsync(fs);
-            selectedPersyaratan.FileNama = fileName;
-            await MessageService.Info("Berhasil");
-            await dbcontext.SaveChangesAsync();
-        }
-        catch (Exception ex)
-        {
-            MessageService.Error(ex.Message);
-        }
-
+        data.Validate = x;
+        dbcontext.Update(data);
+        await dbcontext.SaveChangesAsync();
     }
-
-
-
-    async Task UploadFile(DataPersyaratan item, string data)
-    {
-        selectedPersyaratan = item;
-        await JS.InvokeAsync<string>("uploadfile", data);
-    }
-    Task AddKualifikasi()
-    {
-        dataKualifikasi = dbcontext.Kualifikasis.ToList().Where(x => !model.DataKualifikasi.Any(p => x.Id == p.Id)).ToList();
-        return modalRef.Show();
-    }
-
-    Task DeleteKualifikasi(Kualifikasi data)
-    {
-        model.DataKualifikasi.Remove(data);
-        return Task.CompletedTask;
-    }
-
-
     Task closeKualifikasiModal()
     {
-        return modalRef.Hide();
-    }
-
-    Task selectKualifikasiData()
-    {
-
-        var kualifikasi = dbcontext.Kualifikasis.SingleOrDefault(x => x.Id == selectKualifikasi);
-        if (kualifikasi != null)
-        {
-            model.DataKualifikasi.Add(kualifikasi);
-        }
-        selectKualifikasi = 0;
         return modalRef.Hide();
     }
 
@@ -301,12 +212,7 @@
     ICollection<StatusPermohonan> GetStatusPermohonans(Permohonan model)
     {
         var datas = Enum.GetValues(typeof(StatusPermohonan)).Cast<StatusPermohonan>();
-        if (model.Status == StatusPermohonan.Verifikasi)
-        {
-            return datas.Where(x => x == StatusPermohonan.Verifikasi).ToList();
-        }
-
-        return datas.Where(x => x == model.Status || x == StatusPermohonan.Baru).ToList();
+        return datas.ToList();
     }
 
 }

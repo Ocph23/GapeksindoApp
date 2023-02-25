@@ -1,0 +1,134 @@
+﻿@layout Layouts.AdminLayout
+@page "/admin/kabupaten"
+
+@inject IVersionProvider VersionProvider
+@inject ApplicationDbContext dbcontext
+
+<Heading Size="HeadingSize.Is1" Margin="Margin.Is3.FromBottom">Data Kabupaten</Heading>
+<Button Color="Color.Primary" Clicked="@NewModal">Tambah</Button>
+<DataGrid TItem="Kabupaten" Data="@Kabupatens" ReadData="@OnReadData" TotalItems="@totalKabupatens" PageSize="10"
+    ShowPager Responsive>
+    <DataGridColumn Field="@nameof(Kabupaten.Kode)" Caption="Kode" Editable />
+    <DataGridColumn Field="@nameof(Kabupaten.Nama)" Caption="Nama" Editable />
+    <DataGridColumn Field="@nameof(Kabupaten.Keterangan)" Caption="Keterangan" Editable />
+    <DataGridColumn Width="150px" Caption="Aksi">
+        <DisplayTemplate>
+            <Icon class="btn btn-outline-warning" Name="IconName.Edit" Clicked="@(()=> EditModal(context))" />
+            <Icon class="btn btn-outline-danger" Name="IconName.Delete" Clicked="@(()=> Delete(context))" />
+        </DisplayTemplate>
+    </DataGridColumn>
+</DataGrid>
+
+<Modal @ref="modalRef">
+    <ModalContent Centered>
+        <ModalHeader>
+            <ModalTitle>Tambah/Edit Kabupaten</ModalTitle>
+            <CloseButton />
+        </ModalHeader>
+        <ModalBody>
+            <Field>
+                <FieldLabel>Kode</FieldLabel>
+                <TextEdit @bind-Text="@model.Kode" Placeholder="Kode" />
+            </Field>
+
+            <Field>
+                <FieldLabel>Name</FieldLabel>
+                <TextEdit @bind-Text="@model.Nama" Placeholder="Nama" />
+            </Field>
+        </ModalBody>
+        <ModalFooter>
+            <Button Color="Color.Secondary" Clicked="@HideModal">Close</Button>
+            <Button Color="Color.Primary" Clicked="@Save">Save Changes</Button>
+        </ModalFooter>
+    </ModalContent>
+</Modal>
+
+
+@code {
+    [Inject] IMessageService MessageService { get; set; }
+    private Modal modalRef;
+
+    Kabupaten model = new Kabupaten();
+    private List<Kabupaten> Kabupatens;
+    protected override async Task OnInitializedAsync()
+    {
+        Kabupatens = await dbcontext.Kabupatens.ToListAsync();
+        await base.OnInitializedAsync();
+    }
+
+    private int totalKabupatens;
+
+    private async Task OnReadData(DataGridReadDataEventArgs<Kabupaten> e)
+    {
+        if (!e.CancellationToken.IsCancellationRequested)
+        {
+            List<Kabupaten> response = null;
+
+            // this can be call to anything, in this case we're calling a fictional api
+            //var response = await Http.GetJsonAsync<Kabupaten[]>( $"some-api/Kabupatens?page={e.Page}&pageSize={e.PageSize}" );
+            if (e.ReadDataMode is DataGridReadDataMode.Virtualize)
+                response = await dbcontext.Kabupatens.Skip(e.VirtualizeOffset).Take(e.VirtualizeCount).ToListAsync();
+            else if (e.ReadDataMode is DataGridReadDataMode.Paging)
+                response = await dbcontext.Kabupatens.Skip((e.Page - 1) * e.PageSize).Take(e.PageSize).ToListAsync();
+            else
+                throw new Exception("Unhandled ReadDataMode");
+
+            if (!e.CancellationToken.IsCancellationRequested)
+            {
+                totalKabupatens = await dbcontext.Kabupatens.CountAsync();
+                Kabupatens = new List<Kabupaten>(response); // an actual data for the current page
+            }
+        }
+    }
+
+
+
+    private Task NewModal()
+    {
+        model = new Kabupaten();
+        return modalRef.Show();
+    }
+
+    private Task HideModal()
+    {
+        return modalRef.Hide();
+    }
+    private Task EditModal(Kabupaten data)
+    {
+        model = data;
+        return modalRef.Show();
+    }
+
+    private async Task Save()
+    {
+        try
+        {
+            if (model.Id <= 0)
+            {
+                await dbcontext.Kabupatens.AddAsync(model);
+                await dbcontext.SaveChangesAsync();
+                Kabupatens.Add(model);
+            }
+            else
+            {
+                await dbcontext.SaveChangesAsync();
+            }
+            await modalRef.Hide();
+        }
+        catch (System.Exception ex)
+        {
+            await MessageService.Error(ex.Message);
+        }
+    }
+
+
+    private async Task Delete(Kabupaten model)
+    {
+        if (await MessageService.Confirm("Yakin Hapus Data ?", "Delete"))
+        {
+            dbcontext.Kabupatens.Remove(model);
+            await dbcontext.SaveChangesAsync();
+            Kabupatens.Remove(model);
+        }
+    }
+}

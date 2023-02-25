@@ -5,6 +5,8 @@
 @inject UserManager<IdentityUser> _userManager;
 @inject ApplicationDbContext dbcontext
 @inject IMessageService MessageService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager navManager
 
 <Heading Size="HeadingSize.Is1" Margin="Margin.Is3.FromBottom">Profile</Heading>
 
@@ -23,11 +25,11 @@
         <div class="row">
             <div class="col">
                 <div class="form-floating mb-2">
-                    <TextEdit @bind-Text="@model.Bentuk" class="form-control" placeholder="" />
+                    <TextEdit @bind-Text="@model.Bentuk" class="form-control" placeholder="Bentuk" />
                     <label>Bentuk Perusahaan</label>
                 </div>
                 <div class="form-floating mb-2">
-                    <TextEdit @bind-Text="@model.NamaPerusahaan" class="form-control" placeholder="" />
+                    <TextEdit @bind-Text="@model.NamaPerusahaan" class="form-control" placeholder="Nama" />
                     <label>Nama Perusahaan</label>
                 </div>
                 <div class="form-floating mb-2">
@@ -38,6 +40,16 @@
                     <TextEdit Disabled @bind-Text="@model.Email" class="form-control" placeholder="" />
                     <label>Email</label>
                 </div>
+                <div class="form-floating mb-2">
+                    <Select TValue="Kabupaten" @bind-SelectedValue="@model.Kabupaten" class="form-control"
+                        placeholder="">
+                        @foreach (var item in kabupatens)
+                        {
+                            <SelectItem Value="@item">@item.Nama</SelectItem>
+                        }
+                    </Select>
+                    <label>Kabupaten</label>
+                </div>
 
             </div>
             <div class="col">
@@ -45,11 +57,7 @@
                     <TextEdit @bind-Text="@model.NPWP" class="form-control" placeholder="" />
                     <label>NPWP</label>
                 </div>
-                <div class="form-floating mb-2">
-                    <TextEdit Disabled Text="@(model.Status?"Aktif":"Tidak Aktif")" class="form-control"
-                                placeholder="" />
-                    <label>Status Aktif</label>
-                </div>
+
                 <div class="form-floating mb-2">
                     <TextEdit @bind-Text="@model.Telepon" class="form-control" placeholder="" />
                     <label>Teleppon</label>
@@ -59,7 +67,11 @@
                     <MemoEdit @bind-Text="@model.Alamat" class="form-control" placeholder="" />
                     <label>Alamat</label>
                 </div>
-
+                <div class="form-floating mb-2">
+                    <TextEdit Disabled Text="@(model.Status?"Aktif":"Tidak Aktif")" class="form-control"
+                                placeholder="" />
+                    <label>Status Aktif</label>
+                </div>
 
             </div>
         </div>
@@ -69,19 +81,20 @@
 
 
         @code {
-    [Inject] AuthenticationStateProvider AuthenticationStateProvider { get; set; }
-    [Inject] NavigationManager navManager { get; set; }
 
 
+    IEnumerable<Kabupaten> kabupatens;        
     Perusahaan model = new Perusahaan() { Bentuk = "", NamaPerusahaan = "" };
     protected override async Task OnInitializedAsync()
     {
+
+        kabupatens = dbcontext.Kabupatens.ToList();
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
         if (user.Identity.IsAuthenticated)
         {
             var userData = await _userManager.FindByNameAsync(user.Identity.Name);
-            model = await dbcontext.Perusahaans.SingleOrDefaultAsync(x => x.UserId == userData.Id);
+            model = await dbcontext.Perusahaans.Include(x => x.Kabupaten).SingleOrDefaultAsync(x => x.UserId == userData.Id);
         }
     }
 

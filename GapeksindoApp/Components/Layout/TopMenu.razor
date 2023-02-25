@@ -3,14 +3,15 @@
 <Bar @bind-Visible="@topbarVisible" Breakpoint="Breakpoint.Desktop" Background="Background.Primary" ThemeContrast="ThemeContrast.Light">
     <BarBrand Style="width:30%">
         <BarItem>
-            <BarLink To="/">
-                <BarIcon IconName="customIcon" />
-            </BarLink>
+            
         </BarItem>
     </BarBrand>
     <BarToggler />
     <BarMenu>
         <BarEnd>
+            <BarItem>
+                <BarLink To="/Identity/Account/Register">Daftar Perusahaan</BarLink>
+            </BarItem>
             <BarItem>
                 <BarLink To="/Identity/Account/Login">Login</BarLink>
             </BarItem>
@@ -42,34 +43,6 @@
                                 </Container>
                             </Column>
                         </Row>
-                    </BarDropdownMenu>
-                </BarDropdown>
-            </BarItem>
-            <BarItem>
-                <BarDropdown>
-                    <BarDropdownToggle>Layout</BarDropdownToggle>
-                    <BarDropdownMenu>
-                        <BarDropdownItem Clicked="@(()=>OnLayoutTypeChecked("fixed-header"))">
-                            @if ( LayoutType == "fixed-header" )
-                            {
-                                <Icon Name="IconName.CheckCircle" TextColor="TextColor.Success" />
-                            }
-                            Fixed Header
-                        </BarDropdownItem>
-                        <BarDropdownItem Clicked="@(()=>OnLayoutTypeChecked("fixed-header-footer-only"))">
-                            @if ( LayoutType == "fixed-header-footer-only" )
-                            {
-                                <Icon Name="IconName.CheckCircle" TextColor="TextColor.Success" />
-                            }
-                            Fixed Header and Footer only
-                        </BarDropdownItem>
-                        <BarDropdownItem Clicked="@(()=>OnLayoutTypeChecked("sider-with-header-on-top"))">
-                            @if ( LayoutType == "sider-with-header-on-top" )
-                            {
-                                <Icon Name="IconName.CheckCircle" TextColor="TextColor.Success" />
-                            }
-                            Sider with Header on top
-                        </BarDropdownItem>
                     </BarDropdownMenu>
                 </BarDropdown>
             </BarItem>

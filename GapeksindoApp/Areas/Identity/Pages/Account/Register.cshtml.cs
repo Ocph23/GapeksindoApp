@@ -20,6 +20,7 @@ using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.Extensions.Logging;
 using GapeksindoApp.Data;
 using GapeksindoApp.Models;
+using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace GapeksindoApp.Areas.Identity.Pages.Account
 {
@@ -70,6 +71,10 @@ namespace GapeksindoApp.Areas.Identity.Pages.Account
         /// </summary>
         public IList<AuthenticationScheme> ExternalLogins { get; set; }
 
+          [BindProperty]
+        public IList<SelectListItem> Kabupatens { get; set; }
+
+
         /// <summary>
         ///     This API supports the ASP.NET Core Identity default UI infrastructure and is not intended to be used
         ///     directly from your code. This API may change or be removed in future releases.
@@ -93,6 +98,10 @@ namespace GapeksindoApp.Areas.Identity.Pages.Account
             [Required]
             [Display(Name = "Pemilik")]
             public string Pemilik { get; set; }
+
+            [Required]
+            [Display(Name = "Kabupaten")]
+            public int KabupatenId { get; set; }
 
 
 
@@ -119,11 +128,19 @@ namespace GapeksindoApp.Areas.Identity.Pages.Account
             [Display(Name = "Confirm password")]
             [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
             public string ConfirmPassword { get; set; }
+
+
         }
 
 
         public async Task OnGetAsync(string returnUrl = null)
         {
+            Kabupatens = _dbcontext.Kabupatens.Select(a =>
+                                    new SelectListItem
+                                    {
+                                        Value = a.Id.ToString(),
+                                        Text = a.Nama
+                                    }).ToList();
             ReturnUrl = returnUrl;
             ExternalLogins = (await _signInManager.GetExternalAuthenticationSchemesAsync()).ToList();
         }
@@ -142,15 +159,16 @@ namespace GapeksindoApp.Areas.Identity.Pages.Account
                 if (result.Succeeded)
                 {
                     _logger.LogInformation("User created a new account with password.");
-                   await _userManager.AddToRoleAsync(user,"Perusahaan");
+                    await _userManager.AddToRoleAsync(user, "Perusahaan");
                     var userId = await _userManager.GetUserIdAsync(user);
-
+                    var kabupaten = _dbcontext.Kabupatens.FirstOrDefault(x=>x.Id==Input.KabupatenId);
                     var perusahaan = new Perusahaan()
                     {
                         UserId = userId,
                         NamaPerusahaan = Input.NamaPerusahaan,
                         Pimpinan = Input.Pemilik,
-                        Bentuk = Input.BentukPerusahaan, Email=Input.Email
+                        Bentuk = Input.BentukPerusahaan,
+                        Email = Input.Email, Kabupaten = kabupaten
                     };
 
                     await _dbcontext.Perusahaans.AddAsync(perusahaan);

@@ -14,18 +14,23 @@ using Microsoft.AspNetCore.Identity.UI.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.RazorPages;
 using Microsoft.Extensions.Logging;
+using GapeksindoApp.Data;
 
 namespace GapeksindoApp.Areas.Identity.Pages.Account
 {
     public class LoginModel : PageModel
     {
         private readonly SignInManager<IdentityUser> _signInManager;
+        private readonly UserManager<IdentityUser> _userManager;
         private readonly ILogger<LoginModel> _logger;
+        private readonly ApplicationDbContext context;
 
-        public LoginModel(SignInManager<IdentityUser> signInManager, ILogger<LoginModel> logger)
+        public LoginModel(SignInManager<IdentityUser> signInManager, ILogger<LoginModel> logger, UserManager<IdentityUser> userManager, ApplicationDbContext context)
         {
             _signInManager = signInManager;
             _logger = logger;
+            _userManager = userManager;
+            this.context = context;
         }
 
         /// <summary>
@@ -114,6 +119,21 @@ namespace GapeksindoApp.Areas.Identity.Pages.Account
                 var result = await _signInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
                 if (result.Succeeded)
                 {
+                    var user = await _userManager.FindByNameAsync(Input.Email);
+                    if (await _userManager.IsInRoleAsync(user, "Admin"))
+                        returnUrl = Url.Content("~/admin");
+                    else
+                    {
+                        var perusahaan = context.Perusahaans.SingleOrDefault(x => x.UserId == user.Id);
+                        if (perusahaan != null && !perusahaan.Status)
+                        {
+                            await _signInManager.SignOutAsync();
+                            ModelState.AddModelError(string.Empty, "Akun Perusahaan Anda Tidak Aktif, Silahkan  hubungi administrator !.");
+                            return Page();
+                        }
+                        returnUrl = Url.Content("~/perusahaan");
+                    }
+
                     _logger.LogInformation("User logged in.");
                     return LocalRedirect(returnUrl);
                 }
